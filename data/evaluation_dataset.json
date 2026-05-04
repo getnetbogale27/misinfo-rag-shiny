@@ -1,0 +1,17 @@
+[
+  {
+    "claim": "The Great Wall of China is visible from the moon with the naked eye.",
+    "label": "false",
+    "language": "en"
+  },
+  {
+    "claim": "Water boils at 100 degrees Celsius at sea level.",
+    "label": "true",
+    "language": "en"
+  },
+  {
+    "claim": "የአዲስ አበባ ሰማይ በቀን አረንጓዴ ነው።",
+    "label": "false",
+    "language": "am"
+  }
+]

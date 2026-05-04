@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from evaluation.evaluator import run_evaluation
 from rag.pipeline import run_pipeline
 
 router = APIRouter()
@@ -22,9 +23,22 @@ class AnalyzeResponse(BaseModel):
     language: str
 
 
+class EvaluateRequest(BaseModel):
+    """Request payload for dataset evaluation."""
+
+    dataset_path: str = "data/evaluation_dataset.json"
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
 def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     """Run the RAG pipeline for the provided claim."""
 
     result = run_pipeline(request.claim)
     return AnalyzeResponse(**result)
+
+
+@router.post("/evaluate")
+def evaluate(request: EvaluateRequest) -> dict:
+    """Run the evaluation pipeline against a labeled dataset."""
+
+    return run_evaluation(request.dataset_path)
