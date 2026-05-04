@@ -3,6 +3,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from rag.pipeline import run_pipeline
+
 router = APIRouter()
 
 
@@ -14,15 +16,6 @@ class AnalyzeRequest(BaseModel):
 
 @router.post("/analyze")
 def analyze(request: AnalyzeRequest):
-    """Return a mock analysis response for the provided claim."""
+    """Run the RAG pipeline for the provided claim."""
 
-    # MVP scaffold: static response until full RAG is implemented.
-    return {
-        "verdict": "Likely False",
-        "confidence": 0.75,
-        "explanation": "This claim is not supported by reliable sources.",
-        "evidence": [
-            "WHO states no evidence for this claim",
-            "Scientific studies contradict it",
-        ],
-    }
+    return run_pipeline(request.claim)
