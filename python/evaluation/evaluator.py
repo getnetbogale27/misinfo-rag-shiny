@@ -9,6 +9,18 @@ from typing import Any
 from utils.logger import log_evaluation_records
 
 _VALID_LABELS = {"true", "false", "uncertain"}
+_FALLBACK_DATASET = [
+    {
+        "claim": "Water boils at 100 degrees Celsius",
+        "label": "true",
+        "language": "en",
+    },
+    {
+        "claim": "Vaccines contain microchips",
+        "label": "false",
+        "language": "en",
+    },
+]
 
 
 def _normalize_label(label: str) -> str:
@@ -37,8 +49,6 @@ def _precision_recall_f1(y_true: list[str], y_pred: list[str]) -> tuple[float, f
 
 
 def _retrieval_quality_score(claim: str, evidence: list[str]) -> float:
-    """Heuristic retrieval score based on token overlap with claim."""
-
     claim_tokens = {token for token in claim.lower().split() if token}
     if not claim_tokens:
         return 0.0
@@ -50,8 +60,6 @@ def _retrieval_quality_score(claim: str, evidence: list[str]) -> float:
 
 
 def _explanation_quality_score(explanation: str, evidence: list[str]) -> float:
-    """Simple heuristic: explanation length + citation-like evidence marker."""
-
     length_ok = 1.0 if len((explanation or "").split()) >= 12 else 0.0
     citation_markers = ["source", "evidence", "[", "]", "http", "chunk"]
     has_citation = any(marker in (explanation or "").lower() for marker in citation_markers)
@@ -59,13 +67,23 @@ def _explanation_quality_score(explanation: str, evidence: list[str]) -> float:
     return (length_ok + (1.0 if has_citation or has_evidence else 0.0)) / 2.0
 
 
-def run_evaluation(dataset_path: str | Path) -> dict[str, Any]:
-    """Run end-to-end evaluation over a labeled claim dataset."""
+def _load_samples(dataset_file: Path) -> tuple[list[dict[str, Any]], dict[str, str] | None]:
+    if not dataset_file.exists():
+        return _FALLBACK_DATASET, {
+            "status": "failed",
+            "error": "Dataset missing",
+            "hint": "Create data/evaluation_dataset.json or run dataset generator",
+        }
 
+    samples = json.loads(dataset_file.read_text(encoding="utf-8"))
+    return samples, None
+
+
+def run_evaluation(dataset_path: str | Path) -> dict[str, Any]:
     from rag.pipeline import run_pipeline
 
     dataset_file = Path(dataset_path)
-    samples = json.loads(dataset_file.read_text(encoding="utf-8"))
+    samples, missing_info = _load_samples(dataset_file)
 
     y_true: list[str] = []
     y_pred: list[str] = []
@@ -113,7 +131,8 @@ def run_evaluation(dataset_path: str | Path) -> dict[str, Any]:
 
     log_evaluation_records(records)
 
-    return {
+    response: dict[str, Any] = {
+        "status": "success" if missing_info is None else "failed",
         "accuracy": round(accuracy, 4),
         "precision": round(precision, 4),
         "recall": round(recall, 4),
@@ -121,4 +140,8 @@ def run_evaluation(dataset_path: str | Path) -> dict[str, Any]:
         "retrieval_score": round(retrieval_score, 4),
         "explanation_quality": round(explanation_score, 4),
         "total_samples": total,
+        "fallback_dataset_used": missing_info is not None,
     }
+    if missing_info is not None:
+        response.update(missing_info)
+    return response

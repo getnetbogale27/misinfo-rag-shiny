@@ -28,6 +28,14 @@ class EvaluateRequest(BaseModel):
     dataset_path: str = "data/evaluation_dataset.json"
 
 
+def _safe_response(*, result: dict | list | None = None, error: str | None = None) -> dict:
+    return {
+        "status": "failed" if error else "success",
+        "result": result,
+        "error": error,
+    }
+
+
 @router.post("/analyze")
 def analyze(request: AnalyzeRequest) -> dict:
     """Run the RAG pipeline for the provided claim with safe fallback output."""
@@ -36,20 +44,23 @@ def analyze(request: AnalyzeRequest) -> dict:
         from rag.pipeline import run_pipeline
 
         result = run_pipeline(request.claim)
-        return AnalyzeResponse(**result).model_dump()
+        payload = AnalyzeResponse(**result).model_dump()
+        return _safe_response(result=payload, error=None)
     except Exception as exc:
-        return {"error": str(exc), "fallback": True}
+        return _safe_response(result=None, error=str(exc))
 
 
 @router.post("/evaluate")
 def evaluate(request: EvaluateRequest) -> dict:
     """Run the evaluation pipeline against a labeled dataset."""
 
-    from evaluation.evaluator import run_evaluation
     try:
-        return run_evaluation(request.dataset_path)
+        from evaluation.evaluator import run_evaluation
+
+        result = run_evaluation(request.dataset_path)
+        return _safe_response(result=result, error=None)
     except Exception as exc:
-        return {"error": str(exc), "fallback": True}
+        return _safe_response(result=None, error=str(exc))
 
 
 class DatasetStatsRequest(BaseModel):
@@ -60,4 +71,8 @@ class DatasetStatsRequest(BaseModel):
 def dataset_stats(request: DatasetStatsRequest) -> dict:
     """Return summary statistics for a misinformation dataset."""
 
-    return dataset_statistics(request.dataset_path)
+    try:
+        result = dataset_statistics(request.dataset_path)
+        return _safe_response(result=result, error=None)
+    except Exception as exc:
+        return _safe_response(result=None, error=str(exc))
