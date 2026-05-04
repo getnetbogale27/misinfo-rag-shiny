@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 try:
     import numpy as np
@@ -24,21 +24,41 @@ _INDEX_PATH = _INDEX_DIR / "index.faiss"
 _DOCSTORE_PATH = _INDEX_DIR / "docstore.json"
 
 
+def _missing_index_payload() -> dict[str, str]:
+    return {
+        "status": "no_index",
+        "message": "FAISS index not found. Run build_index.py first.",
+    }
+
+
 @lru_cache(maxsize=1)
-def _load_index_and_docstore() -> Tuple[faiss.Index, Dict[str, str]]:
+def _load_index_and_docstore() -> Tuple[Any, Dict[str, str]]:
     if faiss is None:
         raise ModuleNotFoundError("faiss is not installed")
     if not _INDEX_PATH.exists() or not _DOCSTORE_PATH.exists():
-        raise FileNotFoundError("FAISS index or docstore missing. Run vectorstore/build_index.py first.")
+        raise FileNotFoundError(_missing_index_payload()["message"])
 
     index = faiss.read_index(str(_INDEX_PATH))
     docstore = json.loads(_DOCSTORE_PATH.read_text(encoding="utf-8"))
     return index, docstore
 
 
+def get_retrieval_status() -> dict[str, str]:
+    """Return retrieval subsystem health in a structured format."""
+
+    if faiss is None or np is None:
+        return {
+            "status": "unavailable",
+            "message": "FAISS or numpy dependency missing. Using reasoning-only fallback.",
+        }
+
+    if not _INDEX_PATH.exists() or not _DOCSTORE_PATH.exists():
+        return _missing_index_payload()
+
+    return {"status": "ready", "message": "FAISS retrieval is available."}
+
+
 def _embed_query(query: str) -> np.ndarray:
-    if np is None or faiss is None:
-        raise ModuleNotFoundError("numpy/faiss is not installed")
     query_vector = np.array([get_multilingual_embedding(query)], dtype="float32")
     faiss.normalize_L2(query_vector)
     return query_vector
@@ -48,12 +68,15 @@ def retrieve_top_chunks(query: str, top_k: int = 5) -> List[str]:
     if not query.strip():
         return []
 
+    status = get_retrieval_status()
+    if status["status"] != "ready":
+        return [status["message"]]
+
     try:
         index, docstore = _load_index_and_docstore()
         query_vector = _embed_query(query)
 
-        distances, indices = index.search(query_vector, top_k)
-        _ = distances
+        _, indices = index.search(query_vector, top_k)
 
         chunks: List[str] = []
         for idx in indices[0].tolist():
@@ -64,6 +87,4 @@ def retrieve_top_chunks(query: str, top_k: int = 5) -> List[str]:
                 chunks.append(chunk)
         return chunks
     except Exception:
-        return [
-            "Retrieval unavailable: FAISS index or dependency is missing."
-        ]
+        return ["Retrieval unavailable: FAISS index or dependency is missing."]
