@@ -1,4 +1,4 @@
-"""FAISS-backed retriever for semantic search."""
+"""FAISS-backed retriever for multilingual semantic search."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple
 import faiss
 import numpy as np
 
-from rag.embeddings import get_embedding
+from rag.embeddings import get_multilingual_embedding
 
 _INDEX_DIR = Path(__file__).resolve().parents[1] / "vectorstore" / "faiss_index"
 _INDEX_PATH = _INDEX_DIR / "index.faiss"
@@ -28,12 +28,12 @@ def _load_index_and_docstore() -> Tuple[faiss.Index, Dict[str, str]]:
 
 
 def _embed_query(query: str) -> np.ndarray:
-    query_vector = np.array([get_embedding(query)], dtype="float32")
+    query_vector = np.array([get_multilingual_embedding(query)], dtype="float32")
     faiss.normalize_L2(query_vector)
     return query_vector
 
 
-def retrieve_top_chunks(query: str, top_k: int = 3) -> List[str]:
+def retrieve_top_chunks(query: str, top_k: int = 5) -> List[str]:
     if not query.strip():
         return []
 

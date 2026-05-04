@@ -2,24 +2,29 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Dict, List
 
 
-def _template_answer(claim: str, evidence_text: str) -> Dict[str, str]:
+def _template_answer(language: str) -> Dict[str, str | float]:
     """Simple fallback answer when no LLM is configured."""
+
+    if language == "am":
+        return {
+            "verdict": "ያልታወቀ",
+            "confidence": 0.5,
+            "explanation": "በተመለሱ ማስረጃዎች ላይ ብቻ ተመርኮዞ ይህን ጥያቄ በሙሉ ለማረጋገጥ ወይም ለማስተባበል አይቻልም።",
+        }
 
     return {
         "verdict": "Uncertain",
-        "explanation": (
-            "Based on the retrieved evidence, the claim cannot be conclusively "
-            "verified or falsified automatically. Review the evidence snippets "
-            "for final judgment."
-        ),
+        "confidence": 0.5,
+        "explanation": "Based on retrieved evidence only, the claim cannot be conclusively verified or falsified.",
     }
 
 
-def generate_answer(claim: str, retrieved_chunks: List[str]) -> Dict[str, str]:
+def generate_answer(claim: str, retrieved_chunks: List[str], language: str = "en") -> Dict[str, str | float]:
     """Generate structured claim analysis from claim + evidence."""
 
     evidence_text = "\n\n".join(f"- {chunk}" for chunk in retrieved_chunks)
@@ -31,32 +36,38 @@ def generate_answer(claim: str, retrieved_chunks: List[str]) -> Dict[str, str]:
         try:
             from openai import OpenAI
 
-            client = OpenAI(api_key=api_key)
+            response_language = "Amharic" if language == "am" else "English"
             prompt = (
-                "Given the claim and evidence below, determine if the claim is "
-                "True, False, or Uncertain and explain why briefly.\n\n"
+                "You are a fact-checking assistant. Use retrieved evidence to evaluate the claim. "
+                "Do not hallucinate or add facts not supported by evidence.\n\n"
+                f"Respond in {response_language}.\n"
+                "Return strict JSON with keys: verdict, explanation, confidence.\n"
+                "Confidence must be a number between 0 and 1.\n\n"
                 f"Claim:\n{claim}\n\n"
-                f"Evidence:\n{evidence_text}\n\n"
-                "Return strictly as JSON with keys: verdict, explanation."
+                f"Evidence:\n{evidence_text}"
             )
+
+            client = OpenAI(api_key=api_key)
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a factual verification assistant."},
+                    {"role": "system", "content": "You are a fact-checking assistant."},
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0,
                 response_format={"type": "json_object"},
             )
-            content = response.choices[0].message.content or ""
 
-            import json
-
+            content = response.choices[0].message.content or "{}"
             parsed = json.loads(content)
+
             verdict = str(parsed.get("verdict", "Uncertain"))
             explanation = str(parsed.get("explanation", "No explanation provided."))
-            return {"verdict": verdict, "explanation": explanation}
+            confidence = float(parsed.get("confidence", 0.5))
+            confidence = max(0.0, min(1.0, confidence))
+
+            return {"verdict": verdict, "explanation": explanation, "confidence": confidence}
         except Exception:
             pass
 
-    return _template_answer(claim, evidence_text)
+    return _template_answer(language)

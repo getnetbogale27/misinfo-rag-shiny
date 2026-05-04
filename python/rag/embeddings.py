@@ -1,4 +1,4 @@
-"""Embedding utilities for simple local RAG."""
+"""Embedding utilities for multilingual local RAG."""
 
 from __future__ import annotations
 
@@ -6,17 +6,12 @@ import hashlib
 import os
 from typing import List
 
-
 _FALLBACK_DIM = 256
 _OPENAI_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
 
 def _fallback_embedding(text: str, dim: int = _FALLBACK_DIM) -> List[float]:
-    """Deterministic embedding fallback using hash buckets.
-
-    This keeps the RAG pipeline working even when no external embedding
-    service/model is configured.
-    """
+    """Deterministic multilingual-safe fallback using hash buckets."""
 
     vector = [0.0] * dim
     tokens = text.lower().split()
@@ -36,11 +31,11 @@ def _fallback_embedding(text: str, dim: int = _FALLBACK_DIM) -> List[float]:
     return [x / norm for x in vector]
 
 
-def get_embedding(text: str) -> List[float]:
-    """Return an embedding vector for text.
+def get_multilingual_embedding(text: str) -> List[float]:
+    """Return multilingual embeddings for English/Amharic/mixed text.
 
     Preferred order:
-    1) OpenAI embeddings API (if OPENAI_API_KEY is available and openai package exists)
+    1) OpenAI embeddings API (cross-lingual embedding space)
     2) Deterministic local fallback embedding
     """
 
@@ -56,7 +51,12 @@ def get_embedding(text: str) -> List[float]:
             response = client.embeddings.create(model=_OPENAI_MODEL, input=text)
             return response.data[0].embedding
         except Exception:
-            # Fail open to local deterministic embeddings.
             pass
 
     return _fallback_embedding(text)
+
+
+def get_embedding(text: str) -> List[float]:
+    """Backward-compatible alias used across existing indexing/retrieval code."""
+
+    return get_multilingual_embedding(text)
