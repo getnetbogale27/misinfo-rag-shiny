@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from evaluation.evaluator import run_evaluation
 from rag.pipeline import run_pipeline
+from dataset.stats import dataset_statistics
 
 router = APIRouter()
 
@@ -42,3 +43,14 @@ def evaluate(request: EvaluateRequest) -> dict:
     """Run the evaluation pipeline against a labeled dataset."""
 
     return run_evaluation(request.dataset_path)
+
+
+class DatasetStatsRequest(BaseModel):
+    dataset_path: str = "data/misinformation_dataset.json"
+
+
+@router.post("/dataset/stats")
+def dataset_stats(request: DatasetStatsRequest) -> dict:
+    """Return summary statistics for a misinformation dataset."""
+
+    return dataset_statistics(request.dataset_path)

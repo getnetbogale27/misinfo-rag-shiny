@@ -1,0 +1,24 @@
+[
+  {
+    "id": "sample-001",
+    "claim": "COVID-19 vaccines contain tracking microchips.",
+    "label": "false",
+    "language": "en",
+    "topic": "health",
+    "source_type": "social_media",
+    "evidence": [],
+    "retrieved_evidence": [],
+    "human_verified_evidence": []
+  },
+  {
+    "id": "sample-002",
+    "claim": "የኮቪድ-19 ክትባት በሽታን ለመቀነስ ይረዳል።",
+    "label": "true",
+    "language": "am",
+    "topic": "health",
+    "source_type": "official",
+    "evidence": [],
+    "retrieved_evidence": [],
+    "human_verified_evidence": []
+  }
+]

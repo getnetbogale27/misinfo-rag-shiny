@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from pathlib import Path
+from typing import Any, Dict
+
+import json
 
 from rag.generator import generate_answer
 from rag.retriever import retrieve_top_chunks
@@ -10,6 +13,23 @@ from rag.retriever import retrieve_top_chunks
 
 AMHARIC_BLOCK_START = 0x1200
 AMHARIC_BLOCK_END = 0x137F
+
+PREDICTION_LOG_PATH = Path("data/prediction_logs.json")
+
+
+def _append_prediction_log(record: dict[str, Any], log_path: str | Path = PREDICTION_LOG_PATH) -> None:
+    target = Path(log_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    if target.exists():
+        existing = json.loads(target.read_text(encoding="utf-8"))
+        if not isinstance(existing, list):
+            existing = []
+    else:
+        existing = []
+
+    existing.append(record)
+    target.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def detect_language(text: str) -> str:
@@ -47,10 +67,22 @@ def run_pipeline(claim: str) -> Dict[str, object]:
     if confidence is None:
         confidence = _confidence_from_verdict(str(verdict))
 
-    return {
+    result = {
         "verdict": verdict,
         "confidence": float(confidence),
         "explanation": explanation,
         "evidence": top_chunks,
         "language": language,
     }
+
+    _append_prediction_log(
+        {
+            "claim": claim,
+            "predicted_label": str(verdict).strip().lower(),
+            "retrieved_evidence": top_chunks,
+            "confidence": float(confidence),
+            "language": language,
+        }
+    )
+
+    return result
