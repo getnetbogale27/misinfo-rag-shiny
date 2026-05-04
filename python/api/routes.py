@@ -19,6 +19,7 @@ class AnalyzeResponse(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     explanation: str
     evidence: list[str]
+    language: str
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)

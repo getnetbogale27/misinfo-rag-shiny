@@ -8,6 +8,12 @@ ui <- fluidPage(
   fluidRow(
     column(
       width = 12,
+      selectInput(
+        inputId = "language_mode",
+        label = "Language",
+        choices = c("Auto", "English", "Amharic"),
+        selected = "Auto"
+      ),
       textInput(
         inputId = "claim",
         label = "Enter a claim",
@@ -22,6 +28,9 @@ ui <- fluidPage(
   fluidRow(
     column(
       width = 12,
+      h4("Detected Language"),
+      textOutput("language"),
+
       h4("Verdict"),
       textOutput("verdict"),
 

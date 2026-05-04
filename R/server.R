@@ -25,6 +25,19 @@ server <- function(input, output, session) {
     result(api_result)
   })
 
+
+  output$language <- renderText({
+    req(result())
+    lang <- result()$language
+    if (is.null(lang) || !nzchar(lang)) {
+      "N/A"
+    } else if (lang == "am") {
+      "Amharic"
+    } else {
+      "English"
+    }
+  })
+
   output$verdict <- renderText({
     req(result())
     result()$verdict
