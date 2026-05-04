@@ -1,7 +1,7 @@
 """API routes for the misinformation detection MVP."""
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from rag.pipeline import run_pipeline
 
@@ -14,8 +14,16 @@ class AnalyzeRequest(BaseModel):
     claim: str
 
 
-@router.post("/analyze")
-def analyze(request: AnalyzeRequest):
+class AnalyzeResponse(BaseModel):
+    verdict: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    explanation: str
+    evidence: list[str]
+
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     """Run the RAG pipeline for the provided claim."""
 
-    return run_pipeline(request.claim)
+    result = run_pipeline(request.claim)
+    return AnalyzeResponse(**result)
