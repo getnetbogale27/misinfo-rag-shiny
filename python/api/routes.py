@@ -20,6 +20,7 @@ class AnalyzeResponse(BaseModel):
     explanation: str
     evidence: list[str]
     language: str
+    retrieval_status: str = "disabled"
 
 
 class EvaluateRequest(BaseModel):
@@ -58,6 +59,8 @@ def evaluate(request: EvaluateRequest) -> dict:
         from evaluation.evaluator import run_evaluation
 
         result = run_evaluation(request.dataset_path)
+        if result.get("status") == "failed":
+            return _safe_response(result=result, error=str(result.get("error", "evaluation failed")))
         return _safe_response(result=result, error=None)
     except Exception as exc:
         return _safe_response(result=None, error=str(exc))

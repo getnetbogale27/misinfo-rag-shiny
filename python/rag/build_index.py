@@ -22,7 +22,7 @@ from rag.embeddings import get_multilingual_embedding
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 KB_DIR = DATA_DIR / "knowledge_base"
 INDEX_DIR = Path(__file__).resolve().parents[1] / "vectorstore" / "faiss_index"
-INDEX_PATH = INDEX_DIR / "index.faiss"
+INDEX_PATH = INDEX_DIR / "faiss.index"
 DOCSTORE_PATH = INDEX_DIR / "docstore.json"
 META_PATH = INDEX_DIR / "metadata.json"
 
@@ -85,6 +85,7 @@ def build_index() -> dict[str, object]:
 
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
     faiss.write_index(index, str(INDEX_PATH))
+    print(f"Saved FAISS index: {INDEX_PATH}")
 
     docstore = {str(i): chunk for i, chunk in enumerate(chunks)}
     DOCSTORE_PATH.write_text(json.dumps(docstore, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -97,6 +98,7 @@ def build_index() -> dict[str, object]:
         "docstore_path": str(DOCSTORE_PATH),
     }
     META_PATH.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("Index built successfully")
     return metadata
 
 
