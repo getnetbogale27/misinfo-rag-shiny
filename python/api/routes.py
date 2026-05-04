@@ -46,8 +46,10 @@ def evaluate(request: EvaluateRequest) -> dict:
     """Run the evaluation pipeline against a labeled dataset."""
 
     from evaluation.evaluator import run_evaluation
-
-    return run_evaluation(request.dataset_path)
+    try:
+        return run_evaluation(request.dataset_path)
+    except Exception as exc:
+        return {"error": str(exc), "fallback": True}
 
 
 class DatasetStatsRequest(BaseModel):
