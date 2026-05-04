@@ -6,6 +6,8 @@ source("R/services/rag_api.R")
 server <- function(input, output, session) {
   result <- reactiveVal(NULL)
 
+  evaluation_result <- reactiveVal(NULL)
+
   observeEvent(input$analyze, {
     req(input$claim)
 
@@ -25,6 +27,16 @@ server <- function(input, output, session) {
     result(api_result)
   })
 
+
+  observeEvent(input$run_evaluation, {
+    metrics <- tryCatch(
+      run_model_evaluation("data/evaluation_dataset.json"),
+      error = function(e) {
+        list(error = paste("Evaluation failed:", e$message))
+      }
+    )
+    evaluation_result(metrics)
+  })
 
   output$language <- renderText({
     req(result())
@@ -64,4 +76,23 @@ server <- function(input, output, session) {
     if (is.null(evidence_items)) evidence_items <- character(0)
     tags$ul(lapply(evidence_items, tags$li))
   })
+
+  output$eval_accuracy <- renderText({
+    req(evaluation_result())
+    if (!is.null(evaluation_result()$error)) return(evaluation_result()$error)
+    sprintf("Accuracy: %.2f", as.numeric(evaluation_result()$accuracy))
+  })
+
+  output$eval_f1 <- renderText({
+    req(evaluation_result())
+    if (!is.null(evaluation_result()$error)) return("")
+    sprintf("F1 Score: %.2f", as.numeric(evaluation_result()$f1))
+  })
+
+  output$eval_retrieval <- renderText({
+    req(evaluation_result())
+    if (!is.null(evaluation_result()$error)) return("")
+    sprintf("Retrieval Score: %.2f", as.numeric(evaluation_result()$retrieval_score))
+  })
+
 }

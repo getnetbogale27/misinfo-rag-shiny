@@ -19,7 +19,8 @@ ui <- fluidPage(
         label = "Enter a claim",
         placeholder = "Type a claim to analyze"
       ),
-      actionButton("analyze", "Analyze")
+      actionButton("analyze", "Analyze"),
+      actionButton("run_evaluation", "Run Model Evaluation")
     )
   ),
 
@@ -41,7 +42,13 @@ ui <- fluidPage(
       textOutput("explanation"),
 
       h4("Evidence"),
-      uiOutput("evidence")
+      uiOutput("evidence"),
+
+      hr(),
+      h4("Evaluation Metrics"),
+      textOutput("eval_accuracy"),
+      textOutput("eval_f1"),
+      textOutput("eval_retrieval")
     )
   )
 )
