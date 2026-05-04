@@ -52,7 +52,8 @@ server <- function(input, output, session) {
 
   output$verdict <- renderText({
     req(result())
-    result()$verdict
+    verdict <- result()$verdict
+    if (is.null(verdict) || !nzchar(verdict)) "N/A" else verdict
   })
 
   output$confidence <- renderText({
@@ -67,7 +68,8 @@ server <- function(input, output, session) {
 
   output$explanation <- renderText({
     req(result())
-    result()$explanation
+    explanation <- result()$explanation
+    if (is.null(explanation) || !nzchar(explanation)) "N/A" else explanation
   })
 
   output$evidence <- renderUI({

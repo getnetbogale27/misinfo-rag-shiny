@@ -15,7 +15,19 @@ analyze_claim <- function(claim) {
   stop_for_status(response)
 
   # Convert response body to an R list.
-  content(response, as = "parsed", type = "application/json")
+  payload <- content(response, as = "parsed", type = "application/json")
+
+  # Normalize API envelope to the expected analysis result shape.
+  if (!is.null(payload$error) && nzchar(payload$error)) {
+    stop(payload$error)
+  }
+
+  if (!is.null(payload$result) && is.list(payload$result)) {
+    return(payload$result)
+  }
+
+  # Backward compatibility if backend returns direct fields.
+  payload
 }
 
 run_model_evaluation <- function(dataset_path = "data/evaluation_dataset.json") {
@@ -26,5 +38,15 @@ run_model_evaluation <- function(dataset_path = "data/evaluation_dataset.json") 
   )
 
   stop_for_status(response)
-  content(response, as = "parsed", type = "application/json")
+  payload <- content(response, as = "parsed", type = "application/json")
+
+  if (!is.null(payload$error) && nzchar(payload$error)) {
+    stop(payload$error)
+  }
+
+  if (!is.null(payload$result) && is.list(payload$result)) {
+    return(payload$result)
+  }
+
+  payload
 }
