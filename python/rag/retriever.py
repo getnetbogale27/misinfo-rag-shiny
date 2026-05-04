@@ -20,7 +20,7 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency fallback
 from rag.embeddings import get_multilingual_embedding
 
 _INDEX_DIR = Path(__file__).resolve().parents[1] / "vectorstore" / "faiss_index"
-_INDEX_PATH = _INDEX_DIR / "index.faiss"
+_INDEX_PATH = _INDEX_DIR / "faiss.index"
 _DOCSTORE_PATH = _INDEX_DIR / "docstore.json"
 
 
@@ -70,7 +70,7 @@ def retrieve_top_chunks(query: str, top_k: int = 5) -> List[str]:
 
     status = get_retrieval_status()
     if status["status"] != "ready":
-        return [status["message"]]
+        return []
 
     try:
         index, docstore = _load_index_and_docstore()
@@ -87,4 +87,4 @@ def retrieve_top_chunks(query: str, top_k: int = 5) -> List[str]:
                 chunks.append(chunk)
         return chunks
     except Exception:
-        return ["Retrieval unavailable: FAISS index or dependency is missing."]
+        return []

@@ -8,7 +8,7 @@ from typing import Any, Dict
 import json
 
 from rag.generator import generate_answer
-from rag.retriever import retrieve_top_chunks
+from rag.retriever import get_retrieval_status, retrieve_top_chunks
 
 
 AMHARIC_BLOCK_START = 0x1200
@@ -57,6 +57,7 @@ def _confidence_from_verdict(verdict: str) -> float:
 
 def run_pipeline(claim: str) -> Dict[str, object]:
     language = detect_language(claim)
+    retrieval_health = get_retrieval_status()
     top_chunks = retrieve_top_chunks(claim, top_k=5)
     generated = generate_answer(claim, top_chunks, language=language)
 
@@ -73,6 +74,7 @@ def run_pipeline(claim: str) -> Dict[str, object]:
         "explanation": explanation,
         "evidence": top_chunks,
         "language": language,
+        "retrieval_status": "enabled" if retrieval_health.get("status") == "ready" else "disabled",
     }
 
     _append_prediction_log(
