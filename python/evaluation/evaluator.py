@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from rag.pipeline import run_pipeline
 from utils.logger import log_evaluation_records
 
 _VALID_LABELS = {"true", "false", "uncertain"}
@@ -62,6 +61,8 @@ def _explanation_quality_score(explanation: str, evidence: list[str]) -> float:
 
 def run_evaluation(dataset_path: str | Path) -> dict[str, Any]:
     """Run end-to-end evaluation over a labeled claim dataset."""
+
+    from rag.pipeline import run_pipeline
 
     dataset_file = Path(dataset_path)
     samples = json.loads(dataset_file.read_text(encoding="utf-8"))

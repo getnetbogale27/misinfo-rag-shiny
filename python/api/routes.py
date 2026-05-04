@@ -3,8 +3,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from evaluation.evaluator import run_evaluation
-from rag.pipeline import run_pipeline
 from dataset.stats import dataset_statistics
 
 router = APIRouter()
@@ -30,17 +28,24 @@ class EvaluateRequest(BaseModel):
     dataset_path: str = "data/evaluation_dataset.json"
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
-def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
-    """Run the RAG pipeline for the provided claim."""
+@router.post("/analyze")
+def analyze(request: AnalyzeRequest) -> dict:
+    """Run the RAG pipeline for the provided claim with safe fallback output."""
 
-    result = run_pipeline(request.claim)
-    return AnalyzeResponse(**result)
+    try:
+        from rag.pipeline import run_pipeline
+
+        result = run_pipeline(request.claim)
+        return AnalyzeResponse(**result).model_dump()
+    except Exception as exc:
+        return {"error": str(exc), "fallback": True}
 
 
 @router.post("/evaluate")
 def evaluate(request: EvaluateRequest) -> dict:
     """Run the evaluation pipeline against a labeled dataset."""
+
+    from evaluation.evaluator import run_evaluation
 
     return run_evaluation(request.dataset_path)
 
